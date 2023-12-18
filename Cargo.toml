@@ -1,0 +1,14 @@
+[workspace]
+members = ["crates/protocol", "crates/server"]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+
+[workspace.dependencies]
+async-std = { version = "1.12", features = ["unstable"] }
+bytes = "1.5"
+thiserror = "1.0"
+tracing = "0.1"
+arte-protocol.path = "crates/protocol"
