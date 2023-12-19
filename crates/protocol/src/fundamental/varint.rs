@@ -3,6 +3,16 @@ use super::*;
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub struct VarInt<T: VarNumber = i32>(pub T);
 
+impl<T: VarNumber + PartialEq<T>> PartialEq<T> for VarInt<T> {
+    fn eq(&self, other: &T) -> bool {
+        self.0.eq(other)
+    }
+
+    fn ne(&self, other: &T) -> bool {
+        self.0.ne(other)
+    }
+}
+
 impl<T: VarNumber> VarInt<T> {
     pub fn usize(u: usize) -> Self
     where

@@ -85,7 +85,7 @@ pub trait WriteExt: Write + Unpin {
 
 impl<T: Write + Unpin> WriteExt for T {}
 
-pub async fn string_limit(reader: &mut impl ReadExt, limit: usize) -> Result<String> {
+pub async fn read_string_limit(reader: &mut impl ReadExt, limit: usize) -> Result<String> {
     let length = VarInt::<i32>::read_from(reader)
         .await?
         .0
@@ -150,11 +150,72 @@ impl AsyncDeserialize for String {
         try {
             let mut buf = Self::new();
             let length = reader.deserialize::<VarInt>().await?.to_usize();
-            reader
-                .take(length as u64)
-                .read_to_string(&mut buf)
-                .await?;
+            reader.take(length as u64).read_to_string(&mut buf).await?;
             buf
         }
+    }
+}
+
+impl AsyncSerialize for bool {
+    async fn write_to(&self, writer: &mut impl WriteExt) -> Result<()> {
+        Ok(writer.byte(*self as _).await?)
+    }
+}
+
+impl AsyncDeserialize for bool {
+    async fn read_from(reader: &mut impl ReadExt) -> Result<Self> {
+        Ok(read_enum!([reader.byte().await?] 0x00 => false, 0x01 => true))
+    }
+}
+
+impl<T: AsyncSerialize> AsyncSerialize for Option<T> {
+    async fn write_to(&self, writer: &mut impl WriteExt) -> Result<()> {
+        try {
+            self.is_some().write_to(writer).await?;
+            if let Some(value) = self {
+                value.write_to(writer).await?;
+            }
+        }
+    }
+}
+
+impl<T: AsyncDeserialize> AsyncDeserialize for Option<T> {
+    async fn read_from(reader: &mut impl ReadExt) -> Result<Self> {
+        try {
+            if reader.deserialize::<bool>().await? {
+                Some(reader.deserialize().await?)
+            } else {
+                None
+            }
+        }
+    }
+}
+
+impl<T: AsyncDeserializeContexful> AsyncDeserializeContexful for Option<T> {
+    type Context = T::Context;
+
+    async fn read_with_context(reader: &mut impl ReadExt, context: &Self::Context) -> Result<Self> {
+        try {
+            if reader.deserialize::<bool>().await? {
+                Some(reader.deserialize_with_context(context).await?)
+            } else {
+                None
+            }
+        }
+    }
+}
+
+impl AsyncSerialize for Uuid {
+    async fn write_to(&self, writer: &mut impl WriteExt) -> Result<()> {
+        Ok(writer.write_all(self.as_bytes().as_slice()).await?)
+    }
+}
+
+impl AsyncDeserialize for Uuid {
+    async fn read_from(reader: &mut impl ReadExt) -> Result<Self> {
+        let mut buf = [0; 16];
+        reader.read_exact(&mut buf).await?;
+
+        Ok(Self::from_bytes(buf))
     }
 }

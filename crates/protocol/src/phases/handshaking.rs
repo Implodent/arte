@@ -22,7 +22,7 @@ impl AsyncDeserializeContexful for Handshake {
 
             Self {
                 protocol_version: reader.deserialize().await?,
-                address: string_limit(reader, 256).await?,
+                address: read_string_limit(reader, 256).await?,
                 port: reader.deserialize().await?,
                 next_state: read_enum! { [reader.deserialize::<VarInt>().await?.0]
                     1 => State::Status,

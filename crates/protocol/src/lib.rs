@@ -8,11 +8,14 @@ use async_std::{
     net::TcpStream,
 };
 
-pub mod fundamental;
+pub const PROTOCOL_VERSION: VarInt = VarInt(763);
 
+pub mod fundamental;
 use fundamental::*;
 
 pub mod phases;
+
+pub use uuid::{uuid as comptime_uuid, Uuid};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -35,7 +38,9 @@ pub enum Error {
         values: Vec<String>,
         // for Debug output
         got: String
-    }
+    },
+    #[error("invalid protocol version, expected {PROTOCOL_VERSION:?}, got {_0:?}")]
+    InvalidProtocolVersion(VarInt)
 }
 
 pub type Result<T, E = Error> = core::result::Result<T, E>;

@@ -8,3 +8,4 @@ async-std.workspace = true
 bytes.workspace = true
 thiserror.workspace = true
 async-compression = { version = "0.4", features = ["futures-io", "zlib"] }
+uuid = { version = "1.6.1", features = ["v3"] }
