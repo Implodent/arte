@@ -219,3 +219,88 @@ impl AsyncDeserialize for Uuid {
         Ok(Self::from_bytes(buf))
     }
 }
+
+pub struct Json<T>(pub T);
+
+impl<T: serde::Serialize> AsyncSerialize for Json<T> {
+    async fn write_to(&self, writer: &mut impl WriteExt) -> Result<()> {
+        writer.serialize(&serde_json::to_string(&self.0)?).await
+    }
+}
+
+impl<T: serde::de::DeserializeOwned> AsyncDeserialize for Json<T> {
+    async fn read_from(reader: &mut impl ReadExt) -> Result<Self> {
+        Ok(Self(serde_json::from_str(
+            reader.deserialize::<String>().await?.as_str(),
+        )?))
+    }
+}
+
+impl<T: AsyncSerialize> AsyncSerialize for Vec<T> {
+    async fn write_to(&self, writer: &mut impl WriteExt) -> Result<()> {
+        try {
+            writer.serialize(&VarInt::<i32>::usize(self.len())).await?;
+
+            for item in self {
+                item.write_to(writer).await?;
+            }
+        }
+    }
+}
+
+impl<T: AsyncDeserialize> AsyncDeserialize for Vec<T> {
+    async fn read_from(reader: &mut impl ReadExt) -> Result<Self> {
+        try {
+            let length = VarInt::<i32>::read_from(reader).await?.to_usize();
+            let mut result = vec![];
+
+            for _ in 0..length {
+                result.push(reader.deserialize().await?);
+            }
+
+            result
+        }
+    }
+}
+
+impl<T: AsyncDeserializeContexful> AsyncDeserializeContexful for Vec<T> {
+    type Context = T::Context;
+
+    async fn read_with_context(reader: &mut impl ReadExt, context: &Self::Context) -> Result<Self> {
+        try {
+            let length = VarInt::<i32>::read_from(reader).await?.to_usize();
+            let mut result = vec![];
+
+            for _ in 0..length {
+                result.push(reader.deserialize_with_context(context).await?);
+            }
+
+            result
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StringLimit<const N: usize>(pub String);
+
+impl<const N: usize> std::ops::Deref for StringLimit<N> {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        self.0.as_str()
+    }
+}
+
+impl<const N: usize> AsyncSerialize for StringLimit<N> {
+    async fn write_to(&self, writer: &mut impl WriteExt) -> Result<()> {
+        debug_assert!(self.0.len() <= N);
+
+        self.0.write_to(writer).await
+    }
+}
+
+impl<const N: usize> AsyncDeserialize for StringLimit<N> {
+    async fn read_from(reader: &mut impl ReadExt) -> Result<Self> {
+        read_string_limit(reader, N).await.map(Self)
+    }
+}

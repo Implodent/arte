@@ -22,18 +22,11 @@ async fn status(network: &mut PlayerNetwork) -> Result<()> {
 async fn login(mut network: PlayerNetwork) -> Result<ServerPlayer> {
     network.state = State::Login;
 
-    let LoginStart { name, uuid } = network.recv_packet().await?;
+    let LoginStart { username: name, uuid } = network.recv_packet().await?;
     let uuid = uuid.unwrap_or_else(|| {
-        Uuid::new_v3(
-            &Uuid::from_bytes(
-                [
-                    'O', 'f', 'f', 'l', 'i', 'n', 'e', 'P', 'l', 'a', 'y', 'e', 'r', '\0', '\0',
-                    '\0',
-                ]
-                .map(|x| x.try_into_into::<u8>().unwrap()),
-            ),
-            name.as_bytes(),
-        )
+        debug!(?name, "Player is in offline mode");
+        let real = format!("OfflinePlayer:{name}");
+        Uuid::new_v3(&Uuid::NAMESPACE_DNS, real.as_bytes())
     });
 
     Ok(ServerPlayer {

@@ -13,6 +13,7 @@ pub const PROTOCOL_VERSION: VarInt = VarInt(763);
 pub mod fundamental;
 use fundamental::*;
 
+pub mod model;
 pub mod phases;
 
 pub use uuid::{uuid as comptime_uuid, Uuid};
@@ -37,10 +38,13 @@ pub enum Error {
         // for Debug output
         values: Vec<String>,
         // for Debug output
-        got: String
+        got: String,
     },
     #[error("invalid protocol version, expected {PROTOCOL_VERSION:?}, got {_0:?}")]
-    InvalidProtocolVersion(VarInt)
+    InvalidProtocolVersion(VarInt),
+
+    #[error(transparent)]
+    Json(#[from] serde_json::Error),
 }
 
 pub type Result<T, E = Error> = core::result::Result<T, E>;

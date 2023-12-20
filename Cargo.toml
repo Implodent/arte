@@ -12,3 +12,5 @@ bytes = "1.5"
 thiserror = "1.0"
 tracing = "0.1"
 arte-protocol.path = "crates/protocol"
+serde = { version = "1.0.193", features = ["derive"] }
+serde_json = "1.0.108"
