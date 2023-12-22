@@ -14,3 +14,4 @@ tracing = "0.1"
 arte-protocol.path = "crates/protocol"
 serde = { version = "1.0.193", features = ["derive"] }
 serde_json = "1.0.108"
+futures = "0.3.29"

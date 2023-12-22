@@ -7,3 +7,4 @@ edition.workspace = true
 arte-protocol.workspace = true
 async-std.workspace = true
 tracing.workspace = true
+futures.workspace = true

@@ -1,3 +1,5 @@
+use crate::model::Gamemode;
+
 use super::*;
 
 #[derive(Debug)]
@@ -39,8 +41,6 @@ impl Packet for LoginStart {
 pub struct LoginSuccess {
     pub uuid: Uuid,
     pub username: String,
-    // always 0
-    pub properties: Vec<Property>,
 }
 
 #[derive(Debug)]
@@ -55,8 +55,7 @@ impl AsyncSerialize for LoginSuccess {
         try {
             writer.serialize(&self.uuid).await?;
             writer.serialize(&self.username).await?;
-            writer.serialize(&VarInt::<i32>::usize(self.properties.len())).await?; // FIXME fully encode
-                                                                            // the properties
+            writer.serialize(&VarInt(0)).await?;
         }
     }
 }
@@ -71,7 +70,7 @@ impl AsyncDeserializeContexful for LoginSuccess {
             Self {
                 uuid: reader.deserialize().await?,
                 username: read_string_limit(reader, 16).await?,
-                properties: vec![], // FIXME fully decode the properties
+                // we don't care about properties
             }
         }
     }
@@ -80,4 +79,10 @@ impl AsyncDeserializeContexful for LoginSuccess {
 impl Packet for LoginSuccess {
     const ID: VarInt<i32> = VarInt(0x02);
     const STATE: State = State::Login;
+}
+
+pub struct LoginPlay {
+    pub entity_id: i32,
+    pub is_hardcore: bool,
+    pub game_mode: Gamemode
 }
